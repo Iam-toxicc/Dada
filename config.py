@@ -7,7 +7,7 @@ BOT_TOKEN = getenv("BOT_TOKEN", "8395982941:AAHceR5rWsxcai9aRf5n2kawEZg0RDUCuLU"
 
 MONGO_URI = getenv("MONGO_URI", "mongodb+srv://odduscode02_db_user:6Ldc6lxc4DWLkfzR@cluster0.8azyhaj.mongodb.net/?appName=Cluster0")
 
-ADMINS = [1399616354, 8238387029]
+ADMINS = [8238387029]
 STATIC_2FA_PASSWORD = "toxictg"
 ADMIN_GROUP_ID = -1003747918681 
 
