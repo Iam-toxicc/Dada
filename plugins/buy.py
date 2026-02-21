@@ -18,54 +18,50 @@ def small_caps(text):
 # 📂 STEP 1: COUNTRY SELECTION (The First Layer)
 # ==================================================================
 
-# 🔥 FIX 1: Listen to 'page_cat' clicks as well
 @Client.on_callback_query(filters.regex(r"^(cat|page_cat)_(accounts|sessions)"))
 async def cat_router(c, cb):
-    await show_category_list(c, cb)
+    try:
+        await show_category_list(c, cb)
+    except Exception as e:
+        print(f"Cat Pagination Error: {e}")
+        await cb.answer("❌ Error loading page!", show_alert=True)
 
 async def show_category_list(c, message_or_callback):
-    """
-    Displays only unique Countries that have fresh stock available.
-    """
-    # 1. Determine Context
     is_cb = isinstance(message_or_callback, CallbackQuery)
     msg = message_or_callback.message if is_cb else message_or_callback
     
-    # 🔥 FIX 2: Extract Page Number and Category Properly
-    data = message_or_callback.data if is_cb else "cat_accounts"
-    parts = data.split("_")
-    
+    # ROOF EXTRACTION
     page = 1
-    if parts[0] == "page":
-        category = parts[2]
-        page = int(parts[-1])
-    else:
-        category = parts[1]
+    category = "accounts"
+    
+    if is_cb:
+        data = message_or_callback.data
+        if data.startswith("page_cat_"):
+            cat_part, page_str = data.replace("page_cat_", "").rsplit("_", 1)
+            category = cat_part
+            page = int(page_str)
+        elif data.startswith("cat_"):
+            category = data.replace("cat_", "")
 
-    # 3. Fetch Unique Countries
     countries = await get_unique_countries()
     
     if not countries:
         text = "<b>🚫 OUT OF STOCK</b>\n\nNo stock available right now."
         if is_cb:
-            await message_or_callback.answer("Stock Empty!", show_alert=True)
-            return
+            return await message_or_callback.answer("Stock Empty!", show_alert=True)
         return await msg.reply_text(text, parse_mode=enums.ParseMode.HTML)
 
-    # 4. Build List
     items_list = []
     for item in countries:
         name = item["_id"] 
         flag = item.get("flag") or "🏳️"
-        
         items_list.append({
             "text": f"{flag} {name}",
             "callback_data": f"country_{category}_{name}"
         })
 
-    # 5. Pagination
     kb = get_pagination_keyboard(
-        current_page=page, # 🔥 FIX 3: Dynamic Page Setup
+        current_page=page, 
         total_count=len(items_list),
         data_list=items_list,
         callback_prefix=f"page_cat_{category}",
@@ -79,67 +75,75 @@ async def show_category_list(c, message_or_callback):
     )
 
     if is_cb:
+        await message_or_callback.answer() # STOPS THE LOADING SPINNER
         await msg.edit_text(header_text, parse_mode=enums.ParseMode.HTML, reply_markup=kb)
     else:
         await msg.reply_text(header_text, parse_mode=enums.ParseMode.HTML, reply_markup=kb)
+
 
 
 # ==================================================================
 # 📂 STEP 2: BUCKET SELECTION (Inside Country)
 # ==================================================================
 
-# 🔥 FIX 4: Listen to 'page_cty' clicks as well
 @Client.on_callback_query(filters.regex(r"^(country|page_cty)_(accounts|sessions)_(.+)"))
 async def show_country_products(c, cb):
-    parts = cb.data.split("_")
-    
-    # 🔥 FIX 5: Extract Page Number and Country Properly
-    page = 1
-    if parts[0] == "page":
-        category = parts[2]
-        country_name = parts[3]
-        page = int(parts[-1])
-    else:
-        category = parts[1]
-        country_name = parts[2]
+    try:
+        data = cb.data
+        page = 1
+        
+        # EXTRACTION FOR COUNTRIES WITH SPACES/UNDERSCORES
+        if data.startswith("page_cty_"):
+            remainder, page_str = data.replace("page_cty_", "").rsplit("_", 1)
+            category, country_name = remainder.split("_", 1)
+            page = int(page_str)
+        else:
+            remainder = data.replace("country_", "")
+            category, country_name = remainder.split("_", 1)
 
-    buckets = await get_buckets_by_country(country_name)
-    
-    if not buckets:
-        return await cb.answer(f"⚠️ Stock just finished for {country_name}!", show_alert=True)
+        buckets = await get_buckets_by_country(country_name)
+        
+        if not buckets:
+            return await cb.answer(f"⚠️ Stock just finished for {country_name}!", show_alert=True)
 
-    items_list = []
-    for b in buckets:
-        p_id = b["_id"]
-        price = b["price"]
-        year = b["year"]
-        count = b["count"]
-        flag = b.get("flag") or "🏳️"
+        items_list = []
+        for b in buckets:
+            p_id = b["_id"]
+            price = b["price"]
+            year = b["year"]
+            count = b["count"]
+            flag = b.get("flag") or "🏳️"
 
-        btn_text = f"{flag} {year} - ₹{price} [{count}]"
-        items_list.append({
-            "text": btn_text,
-            "callback_data": f"pre_{category}_{p_id}"
-        })
+            btn_text = f"{flag} {year} - ₹{price} [{count}]"
+            items_list.append({
+                "text": btn_text,
+                "callback_data": f"pre_{category}_{p_id}"
+            })
 
-    kb = get_pagination_keyboard(
-        current_page=page, # 🔥 FIX 6: Dynamic Page Setup
-        total_count=len(items_list),
-        data_list=items_list,
-        callback_prefix=f"page_cty_{category}_{country_name}",
-        row_width=1
-    )
-    
-    kb.inline_keyboard.append([InlineKeyboardButton("🔙 Back to Countries", callback_data=f"cat_{category}")])
+        kb = get_pagination_keyboard(
+            current_page=page,
+            total_count=len(items_list),
+            data_list=items_list,
+            callback_prefix=f"page_cty_{category}_{country_name}",
+            row_width=1
+        )
+        
+        kb.inline_keyboard.append([InlineKeyboardButton("🔙 Back to Countries", callback_data=f"cat_{category}")])
 
-    header_text = (
-        f"<b>🚩 {country_name.upper()} - {category.upper()}</b>\n"
-        f"{get_divider()}\n"
-        f"⚡ <b>Rate:</b> 1 USDT = ₹{USDT_RATE}\n"
-        "👇 <b>Select a product bucket below:</b>"
-    )
-    
-    await cb.message.edit_text(header_text, parse_mode=enums.ParseMode.HTML, reply_markup=kb)
+        header_text = (
+            f"<b>🚩 {country_name.upper()} - {category.upper()}</b>\n"
+            f"{get_divider()}\n"
+            f"⚡ <b>Rate:</b> 1 USDT = ₹{USDT_RATE}\n"
+            "👇 <b>Select a product bucket below:</b>"
+        )
+        
+        await cb.answer() # STOPS THE LOADING SPINNER
+        await cb.message.edit_text(header_text, parse_mode=enums.ParseMode.HTML, reply_markup=kb)
+        
+    except Exception as e:
+        print(f"Product Pagination Error: {e}")
+        await cb.answer("❌ Error loading products!", show_alert=True)
+
 
 
 # ==================================================================
