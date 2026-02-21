@@ -115,7 +115,8 @@ def get_pagination_keyboard(current_page, total_count, data_list, callback_prefi
         nav_buttons = []
         # Previous
         if current_page > 1:
-            nav_buttons.append(InlineKeyboardButton("⬅️", callback_data=f"page_{callback_prefix}_{current_page-1}"))
+            
+            nav_buttons.append(InlineKeyboardButton("⬅️", callback_data=f"{callback_prefix}_{current_page-1}"))
         else:
             nav_buttons.append(InlineKeyboardButton("⏺", callback_data="ignore"))
 
@@ -124,11 +125,13 @@ def get_pagination_keyboard(current_page, total_count, data_list, callback_prefi
         
         # Next
         if current_page < total_pages:
-            nav_buttons.append(InlineKeyboardButton("➡️", callback_data=f"page_{callback_prefix}_{current_page+1}"))
+            
+            nav_buttons.append(InlineKeyboardButton("➡️", callback_data=f"{callback_prefix}_{current_page+1}"))
         else:
             nav_buttons.append(InlineKeyboardButton("⏺", callback_data="ignore"))
         
         keyboard.append(nav_buttons)
+
 
     # 6. Global Back Button
     keyboard.append([InlineKeyboardButton("🔙 Back to Menu", callback_data="home")])
