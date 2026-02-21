@@ -18,6 +18,11 @@ def small_caps(text):
 # 📂 STEP 1: COUNTRY SELECTION (The First Layer)
 # ==================================================================
 
+# 🔥 FIX 1: Listen to 'page_cat' clicks as well
+@Client.on_callback_query(filters.regex(r"^(cat|page_cat)_(accounts|sessions)"))
+async def cat_router(c, cb):
+    await show_category_list(c, cb)
+
 async def show_category_list(c, message_or_callback):
     """
     Displays only unique Countries that have fresh stock available.
@@ -26,9 +31,16 @@ async def show_category_list(c, message_or_callback):
     is_cb = isinstance(message_or_callback, CallbackQuery)
     msg = message_or_callback.message if is_cb else message_or_callback
     
-    # 2. Extract Category
-    data = message_or_callback.data if is_cb else getattr(message_or_callback, "data", "cat_accounts")
-    category = data.split("_")[1]
+    # 🔥 FIX 2: Extract Page Number and Category Properly
+    data = message_or_callback.data if is_cb else "cat_accounts"
+    parts = data.split("_")
+    
+    page = 1
+    if parts[0] == "page":
+        category = parts[2]
+        page = int(parts[-1])
+    else:
+        category = parts[1]
 
     # 3. Fetch Unique Countries
     countries = await get_unique_countries()
@@ -53,7 +65,7 @@ async def show_category_list(c, message_or_callback):
 
     # 5. Pagination
     kb = get_pagination_keyboard(
-        current_page=1,
+        current_page=page, # 🔥 FIX 3: Dynamic Page Setup
         total_count=len(items_list),
         data_list=items_list,
         callback_prefix=f"page_cat_{category}",
@@ -71,19 +83,25 @@ async def show_category_list(c, message_or_callback):
     else:
         await msg.reply_text(header_text, parse_mode=enums.ParseMode.HTML, reply_markup=kb)
 
-@Client.on_callback_query(filters.regex(r"^cat_(accounts|sessions)"))
-async def cat_router(c, cb):
-    await show_category_list(c, cb)
 
 # ==================================================================
 # 📂 STEP 2: BUCKET SELECTION (Inside Country)
 # ==================================================================
 
-@Client.on_callback_query(filters.regex(r"^country_(accounts|sessions)_(.+)"))
+# 🔥 FIX 4: Listen to 'page_cty' clicks as well
+@Client.on_callback_query(filters.regex(r"^(country|page_cty)_(accounts|sessions)_(.+)"))
 async def show_country_products(c, cb):
-    data = cb.data.split("_")
-    category = data[1]
-    country_name = data[2]
+    parts = cb.data.split("_")
+    
+    # 🔥 FIX 5: Extract Page Number and Country Properly
+    page = 1
+    if parts[0] == "page":
+        category = parts[2]
+        country_name = parts[3]
+        page = int(parts[-1])
+    else:
+        category = parts[1]
+        country_name = parts[2]
 
     buckets = await get_buckets_by_country(country_name)
     
@@ -105,7 +123,7 @@ async def show_country_products(c, cb):
         })
 
     kb = get_pagination_keyboard(
-        current_page=1,
+        current_page=page, # 🔥 FIX 6: Dynamic Page Setup
         total_count=len(items_list),
         data_list=items_list,
         callback_prefix=f"page_cty_{category}_{country_name}",
@@ -122,6 +140,7 @@ async def show_country_products(c, cb):
     )
     
     await cb.message.edit_text(header_text, parse_mode=enums.ParseMode.HTML, reply_markup=kb)
+
 
 # ==================================================================
 # 🚥 STEP 3: CONFIRMATION SCREEN
