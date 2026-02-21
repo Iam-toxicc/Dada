@@ -197,12 +197,33 @@ async def add_money_trigger(c, cb):
         parse_mode=enums.ParseMode.HTML
     )
 
+#  Deduct Money UI Handler
+@Client.on_callback_query(filters.regex(r"deductmoney_(\d+)"))
+async def deduct_money_trigger(c, cb):
+    target_id = cb.data.split("_")[1]
+    admin_session[cb.from_user.id] = {"mode": "deducting_balance", "target_id": target_id, "menu_id": cb.message.id}
+    await cb.message.edit_text(
+        f"<b>➖ Deduct Balance from `{target_id}`</b>\n\n"
+        "Enter the amount in INR to DEDUCT (Numbers only):",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Cancel", callback_data="admin_users")]]),
+        parse_mode=enums.ParseMode.HTML
+    )
+
 @Client.on_callback_query(filters.regex(r"ban_(\d+)"))
 async def ban_user_callback(c, cb):
     target_id = int(cb.data.split("_")[1])
     await col_users.update_one({"_id": target_id}, {"$set": {"is_banned": True}})
     await cb.answer(f"🚫 User {target_id} Banned!", show_alert=True)
     await safe_show_dashboard(c, cb)
+
+# Unban User Handler
+@Client.on_callback_query(filters.regex(r"unban_(\d+)"))
+async def unban_user_callback(c, cb):
+    target_id = int(cb.data.split("_")[1])
+    await col_users.update_one({"_id": target_id}, {"$set": {"is_banned": False}})
+    await cb.answer(f"✅ User {target_id} Unbanned!", show_alert=True)
+    await safe_show_dashboard(c, cb)
+
 
 # ==================================================================
 # 💰 PAYMENTS (Crypto / Manual)
@@ -382,11 +403,19 @@ async def admin_master_listener(c, msg):
                         f"💰 Balance: ₹{user.get('balance', 0)}\n"
                         f"📅 Join: {user.get('join_date')}"
                     )
+                    
+                    is_banned = user.get("is_banned", False)
+                    ban_btn = InlineKeyboardButton("✅ Unban User", callback_data=f"unban_{target_id}") if is_banned else InlineKeyboardButton("🚫 Ban User", callback_data=f"ban_{target_id}")
+                    
                     btns = InlineKeyboardMarkup([
-                        [InlineKeyboardButton("➕ Add Balance", callback_data=f"addmoney_{target_id}")],
-                        [InlineKeyboardButton("🚫 Ban User", callback_data=f"ban_{target_id}")],
+                        [
+                            InlineKeyboardButton("➕ Add", callback_data=f"addmoney_{target_id}"),
+                            InlineKeyboardButton("➖ Deduct", callback_data=f"deductmoney_{target_id}")
+                        ],
+                        [ban_btn],
                         [InlineKeyboardButton("🔙 Back", callback_data="admin_users")]
                     ])
+
                     await c.edit_message_text(msg.chat.id, menu_id, info, reply_markup=btns, parse_mode=enums.ParseMode.HTML)
                 else:
                     temp = await msg.reply("❌ User not found!")
@@ -463,6 +492,20 @@ async def admin_master_listener(c, msg):
             except Exception as e:
                 print(f"Stock Input Error: {e}")
 
+        elif mode == "deducting_balance" and msg.text:
+            try:
+                amount = int(msg.text)
+                target = int(state["target_id"])
+                
+                await update_balance(target, -amount)
+                await msg.delete()
+                
+                await c.edit_message_text(msg.chat.id, menu_id, f"✅ Deducted ₹{amount} from User `{target}`", 
+                                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Dashboard", callback_data="admin_home")]]), parse_mode=enums.ParseMode.HTML)
+                clear_session(user_id)
+            except Exception as e:
+                pass
+        
         # 5. FORCE SUB CONFIGURATION
         elif mode == "setting_fsub" and msg.text:
             try:
