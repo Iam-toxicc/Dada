@@ -343,6 +343,12 @@ async def finish_order_summary(c, cb):
 # ==================================================================
 # 🚫 4. IGNORE DUMMY CALLBACK
 # ==================================================================
-@Client.on_callback_query(filters.regex("ignore"))
+# 🔥 FIX: Added ^ and $ so it ONLY catches 'ignore_dev'
+@Client.on_callback_query(filters.regex("^ignore_dev$"))
 async def ignore_callback(c, cb):
     await cb.answer("⚠️ You cannot logout the bot itself!", show_alert=True)
+
+# 🔥 FIX: Separate silent handler for Paginator's "ignore" button
+@Client.on_callback_query(filters.regex("^ignore$"))
+async def silent_ignore(c, cb):
+    await cb.answer()
