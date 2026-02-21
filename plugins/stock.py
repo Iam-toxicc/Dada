@@ -420,29 +420,64 @@ async def handle_dialpad(c, cb):
         )
     except: pass
 
+# ==================================================================
+# 🗑️ CLEAR STOCK HANDLERS  Pagination & Extraction)
+# ==================================================================
 
-# CLEAR STOCK HANDLERS
-@Client.on_callback_query(filters.regex("admin_delete_menu"))
+
+@Client.on_callback_query(filters.regex(r"^(admin_delete_menu|page_del_\d+)$"))
 async def clear_stock_menu(c, cb):
-    countries = await get_unique_countries()
-    if not countries: return await cb.answer("Stock is already empty!", show_alert=True)
-    
-    # Show flag here 
-    items_list = [{"text": f"🗑 {i.get('flag', '🏳️')} {i['_id']}", "callback_data": f"conf_del_{i['_id']}"} for i in countries]
-    
-    kb = get_pagination_keyboard(1, len(items_list), items_list, "page_del", row_width=2)
-    await cb.message.edit_text("<b>🗑 SELECT COUNTRY TO CLEAR:</b>", reply_markup=kb, parse_mode=enums.ParseMode.HTML)
+    # Fetch page number dynamically
+    page = 1
+    if cb.data.startswith("page_del_"):
+        page = int(cb.data.split("_")[-1])
 
-@Client.on_callback_query(filters.regex(r"conf_del_(.+)"))
+    countries = await get_unique_countries()
+    if not countries: 
+        return await cb.answer("Stock is already empty!", show_alert=True)
+    
+    # Format items
+    items_list = [
+        {"text": f"🗑 {i.get('flag', '🏳️')} {i['_id']}", "callback_data": f"conf_del_{i['_id']}"} 
+        for i in countries
+    ]
+    
+    # Generate Keyboard
+    kb = get_pagination_keyboard(
+        current_page=page, 
+        total_count=len(items_list), 
+        data_list=items_list, 
+        callback_prefix="page_del", 
+        row_width=2
+    )
+    
+    text = "<b>🗑 SELECT COUNTRY TO CLEAR:</b>"
+    try:
+        await cb.answer() # Stops loading spinner
+        await cb.message.edit_text(text, reply_markup=kb, parse_mode=enums.ParseMode.HTML)
+    except: pass
+
+@Client.on_callback_query(filters.regex(r"^conf_del_(.+)"))
 async def confirm_delete(c, cb):
-    country = cb.data.split("_")[2]
+    
+    country = cb.data.replace("conf_del_", "")
+    
     text = f"<b>⚠️ WARNING!</b>\n\nDelete ALL fresh stock for <b>{country}</b>?"
-    buttons = InlineKeyboardMarkup([[InlineKeyboardButton("✅ YES", callback_data=f"exec_del_{country}"), InlineKeyboardButton("🔙 NO", callback_data="admin_delete_menu")]])
+    buttons = InlineKeyboardMarkup([
+        [InlineKeyboardButton("✅ YES", callback_data=f"exec_del_{country}")],
+        [InlineKeyboardButton("🔙 NO", callback_data="admin_delete_menu")]
+    ])
     await cb.message.edit_text(text, reply_markup=buttons, parse_mode=enums.ParseMode.HTML)
 
-@Client.on_callback_query(filters.regex(r"exec_del_(.+)"))
+@Client.on_callback_query(filters.regex(r"^exec_del_(.+)"))
 async def execute_clear_stock(c, cb):
-    country = cb.data.split("_")[2]
+    # extraction for execution
+    country = cb.data.replace("exec_del_", "")
+    
     res = await col_stock.delete_many({"country": country, "status": "fresh"})
-    await cb.answer(f"🗑 Deleted {res.deleted_count} items!", show_alert=True)
+    await cb.answer(f"🗑 Deleted {res.deleted_count} items from {country}!", show_alert=True)
+    
+    # Reload page 1 after deletion
+    cb.data = "admin_delete_menu"
     await clear_stock_menu(c, cb)
+
