@@ -74,7 +74,7 @@ async def deposit_callback(c, cb):
 async def pay_upi(c, cb):
     user_id = cb.from_user.id
     clear_deposit_session(user_id)
-    qr_image_url = "https://i.ibb.co/NdM8BQV6/BHARATPE-QR-1.png"
+    qr_image_url = "https://files.catbox.moe/qoat66.jpg"
     
     text = (
         "<b>💳 UPI PAYMENT (Manual)</b>\n"
