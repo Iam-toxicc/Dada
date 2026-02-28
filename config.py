@@ -5,7 +5,7 @@ API_ID = int(getenv("API_ID", "39189646"))
 API_HASH = getenv("API_HASH", "4e1e732c309ae9a475f5e65c192957c8")
 BOT_TOKEN = getenv("BOT_TOKEN", "8646766746:AAHkoZKK9YuyOkBBcOMzECzbg0UHYdkEs4M")
 
-MONGO_URI = getenv("MONGO_URI", "")
+MONGO_URI = getenv("MONGO_URI", "mongodb+srv://shourya6055_db_user:Ngt1JdbWoFXhJ9RX@toxic.lsnylyq.mongodb.net/?appName=Toxic")
 
 ADMINS = [6539720810, 7634311488, 8238387029]
 STATIC_2FA_PASSWORD = "dadatg"
