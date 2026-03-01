@@ -1,4 +1,7 @@
 import asyncio
+import aiohttp
+import qrcode
+import io
 from hydrogram import Client, filters, enums
 from hydrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ForceReply, CallbackQuery, Message
 from config import ADMINS, PAYMENT_UPI_ID, BINANCE_ID, TRC20_ADDRESS, ADMIN_GROUP_ID
@@ -142,12 +145,12 @@ async def ask_proof(c, cb):
         "━━━━━━━━━━━━━━━━━━━━\n"
         "Send the payment screenshot now.\n"
         "<i>Make sure the transaction ID is visible.</i>",
-        reply_markup=ForceReply(placeholder="Send Image..."),
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Cancel", callback_data="deposit_home")]]),
         parse_mode=enums.ParseMode.HTML
     )
     deposit_session[user_id]["menu_id"] = sent.id
 
-@Client.on_message(filters.reply & (filters.photo | filters.document), group=2)
+@Client.on_message((filters.photo | filters.document) & filters.private, group=2)
 async def handle_proof(c, msg):
     user_id = msg.from_user.id
     if user_id not in deposit_session: return
