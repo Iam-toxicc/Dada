@@ -315,7 +315,7 @@ async def send_public_log(client, user, country, price, item_data, flag):
             f"<b>✚ <u>OTP</u>:</b>  <spoiler>******</spoiler> 💬\n"
             f"<b>✚ <u>Server</u>:</b>  <b>(1)</b> 🥂\n"
             f"<b>✚ <u>Password</u>:</b>  <spoiler>{STATIC_2FA_PASSWORD}</spoiler> 🔐\n\n"
-            f"<b>✦</b> <i>@OTP_DADA_SMS_BOT</i>  <b>||</b>  <i>@dada_store_sms</i> <b>✦</b>"
+            f"<b>✦</b> <i>@OTP_DADA_SMS_BOT</i>  <b>||</b>  <i>@otp_sms_dada</i> <b>✦</b>"
         )
         
         # Hardcoded URL for optimization
