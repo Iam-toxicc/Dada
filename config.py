@@ -19,6 +19,6 @@ TRC20_ADDRESS = "TEXjaYKjW8w9QTZCGkruP9rxT9g4SGzVLa"
 
 LOG_CHANNEL = -1003754012411
 DEFAULT_FSUB_ID = -1003372877862 
-DEFAULT_FSUB_LINK = "https://t.me/+_W3LcfP1y6A2N2Nh"
+DEFAULT_FSUB_LINK = "https://t.me/otp_sms_dada"
 
 DIVIDER = "━━━━━━━━━━━━━━━━━━━━━━"
